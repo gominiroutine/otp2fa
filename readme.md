@@ -40,3 +40,36 @@ TOTP_APP_DENIM_WORD_FILENAME=-
 ```shell
  go run totpshowcode.go --database="totp.db"
 ```
+
+## Docker
+
+- Build docker image
+
+```shell
+ sh build-docker.sh
+```
+
+- TEST script
+
+```shell
+ # add test folder
+ mkdir test_otp2fs; cd test_otp2fs
+
+ # CREATE global env
+ mkdir env
+ echo 'TOTP_APP_ENV=prod
+TOTP_APP_RATE_COUNT=10
+TOTP_APP_DATABASE_FILENAME=totp.db
+TOTP_APP_QRCODE_FOLDER=qrcode/
+TOTP_APP_DATABASE_FOLDER=database/
+TOTP_APP_REGEX_WORD_FILENAME=[\p{L}\p{N}]+
+TOTP_APP_DENIM_WORD_FILENAME=-
+' > env/global.env
+
+ # RUN container
+ docker run -d --name otp2fs -v ${PWD}/env:/app/env -v ${PWD}/database:/app/database -v ${PWD}/qrcode:/app/qrcode -v ${PWD}/new-qrcode:/app/new-qrcode -it manhavn/otp2fs:v0.0.1
+ docker exec otp2fs create --issuer="test.com" --account="hello@account.com" --title="Test Title"
+ docker exec otp2fs load --database="totp.db" --qrcode="test-com-Test-Title-hello-account-com.png"
+ docker exec -it otp2fs genqr --database="totp.db" --output="new-qrcode"
+ docker exec -it otp2fs otp --database="totp.db"
+```

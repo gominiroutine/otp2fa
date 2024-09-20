@@ -2,6 +2,7 @@
 **
 # allow
 !.gitignore
+!Dockerfile
 !.prettierignore
 !readme.md
 !format.sh
@@ -12,6 +13,7 @@
 !addauthenapptotp.go
 !totpgenqrcode.go
 !totpshowcode.go
+!build-docker.sh
 
 !lib
 !env

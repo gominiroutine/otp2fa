@@ -54,18 +54,20 @@ func main() {
 		}
 	}()
 	if len(output) == 0 {
-		fmt.Println(
-			`Usage (default --output="qrcode"): --database="totp.db" --output="new-qrcode"`,
+		output = strings.TrimSuffix(os.Getenv("TOTP_APP_QRCODE_FOLDER"), "/")
+		fmt.Printf(
+			"(default --output=\"%s\")\nUsage: --database=\"totp.db\" --output=\"new-qrcode\"\n",
+			output,
 		)
-		return
 	}
 	_ = os.MkdirAll(output, 0o755)
 	if len(database) == 0 {
 		database = os.Getenv("TOTP_APP_DATABASE_FILENAME")
 	}
 	if len(database) == 0 {
-		fmt.Println(
-			`Usage (default --output="qrcode"): --database="totp.db" --output="new-qrcode"`,
+		fmt.Printf(
+			"(default --output=\"%s\")\nUsage: --database=\"totp.db\" --output=\"new-qrcode\"\n",
+			output,
 		)
 		return
 	}
@@ -205,7 +207,9 @@ func main() {
 							//_ = otp2fa.WriteFileQrCodeUrl(urlKey, qrFilename)
 							_ = otp2fa.WriteFileByPngData(pngData, qrFilename)
 
-							fmt.Printf("Created 2FA/QR:\n%s\n%s\n", logName, pngName)
+							fmt.Printf("Created 2FA/QR: %s\n%s\n%s\n", input, logName, pngName)
+							fmt.Printf("\033[4A")
+							fmt.Printf("\033[K")
 
 							// fmt.Println(urlKey)
 							// fmt.Println()

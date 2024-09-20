@@ -137,9 +137,9 @@ func main() {
 		}
 
 		mapRunning := map[string]context.CancelFunc{}
+		fmt.Println("Enter the Account (q to quit): ")
 		for {
 			var input string
-			fmt.Print("Enter the Account (q to quit): ")
 			_, _ = fmt.Scan(&input)
 			if input == "q" {
 				os.Exit(0)
@@ -147,6 +147,8 @@ func main() {
 			for secret, cancelFunc := range mapRunning {
 				cancelFunc()
 				delete(mapRunning, secret)
+				fmt.Printf("\033[1A")
+				fmt.Printf("\033[K")
 			}
 			func() {
 				secretKey := []byte(strings.TrimSpace(input))
@@ -160,16 +162,16 @@ func main() {
 							timeNow := time.Now()
 							countdown := 30 - timeNow.Second()%30
 							if token, err := otp2fa.GenerateCode(secret, timeNow); err == nil {
-								fmt.Println(
+								fmt.Printf("\033[1A")
+								fmt.Printf("\033[K")
+								fmt.Printf(
+									"\r%s OTP: %s refresh at %d second(s)\n",
 									input,
-									"Current OTP:",
 									token,
-									"refresh at",
 									countdown,
-									"second(s)",
 								)
 							}
-							time.Sleep(time.Second * time.Duration(countdown))
+							// time.Sleep(time.Second * time.Duration(countdown))
 							if ctx.Err() != nil {
 								break
 							}
