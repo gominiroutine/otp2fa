@@ -26,7 +26,7 @@ TOTP_APP_DENIM_WORD_FILENAME=-
 - Scan QR CODE save 2FA account to database
 
 ```shell
- go run addauthenapptotp.go --database="totp.db" --qrcode="file-qrcode.png"
+ go run addauthenapptotp.go --database="totp.db" --qrcode="test-com-Test-Title-hello-account-com.png"
 ```
 
 - Re-generate QR CODE from database to new folder (default folder: --output="qrcode")
