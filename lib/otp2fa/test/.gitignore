@@ -1,0 +1,9 @@
+*
+**
+# allow
+!.gitignore
+!main.go
+!createtotp.go
+!addauthenapptotp.go
+!totpgenqrcode.go
+!totpshowcode.go

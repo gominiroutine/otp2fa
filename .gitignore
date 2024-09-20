@@ -1,0 +1,17 @@
+*
+**
+# allow
+!.gitignore
+!.prettierignore
+!readme.md
+!format.sh
+!vendor.sh
+!go.mod
+#!main.go
+!createtotp.go
+!addauthenapptotp.go
+!totpgenqrcode.go
+!totpshowcode.go
+
+!lib
+!env
