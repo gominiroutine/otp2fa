@@ -83,6 +83,9 @@ func main() {
 	if u, err := url.Parse(qrUrlKey); err == nil {
 		issuer := u.Query().Get("issuer")
 		secret := u.Query().Get("secret")
+		if !strings.Contains(u.Path, ":") {
+			u.Path = fmt.Sprintf("/%s:%s", issuer, strings.TrimPrefix(u.Path, "/"))
+		}
 		if before, after, found := strings.Cut(u.Path, ":"); found {
 			accountTitle := strings.TrimPrefix(before, "/")
 			accountName := after

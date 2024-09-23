@@ -8,12 +8,14 @@
 !format.sh
 !vendor.sh
 !go.mod
-#!main.go
 !createtotp.go
 !addauthenapptotp.go
 !totpgenqrcode.go
+!totpremoveaccount.go
 !totpshowcode.go
+!totpupdateaccount.go
 !build-docker.sh
+!restart.sh
 
 !lib
 !env

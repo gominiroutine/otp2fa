@@ -29,6 +29,12 @@ TOTP_APP_DENIM_WORD_FILENAME=-
  go run addauthenapptotp.go --database="totp.db" --qrcode="test-com-Test-Title-hello-account-com.png"
 ```
 
+- Update 2FA account from database
+
+```shell
+ go run totpupdateaccount.go --database="totp.db"
+```
+
 - Re-generate QR CODE from database to new folder (default folder: --output="qrcode")
 
 ```shell
@@ -39,6 +45,12 @@ TOTP_APP_DENIM_WORD_FILENAME=-
 
 ```shell
  go run totpshowcode.go --database="totp.db"
+```
+
+- Remove 2FA account from database
+
+```shell
+ go run totpremoveaccount.go --database="totp.db"
 ```
 
 ## Docker
@@ -70,6 +82,8 @@ TOTP_APP_DENIM_WORD_FILENAME=-
  docker run -d --name otp2fs -v ${PWD}/env:/app/env -v ${PWD}/database:/app/database -v ${PWD}/qrcode:/app/qrcode -v ${PWD}/new-qrcode:/app/new-qrcode -it manhavn/otp2fs:v0.0.1
  docker exec otp2fs create --issuer="test.com" --account="hello@account.com" --title="Test Title"
  docker exec otp2fs load --database="totp.db" --qrcode="test-com-Test-Title-hello-account-com.png"
+ docker exec -it otp2fs update --database="totp.db"
  docker exec -it otp2fs genqr --database="totp.db" --output="new-qrcode"
  docker exec -it otp2fs otp --database="totp.db"
+ docker exec -it otp2fs remove --database="totp.db"
 ```

@@ -4,16 +4,14 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mattn/go-tty"
 
 	"github.com/joho/godotenv"
 	"github.com/variar/buckets"
-
-	"root/lib/otp2fa"
 )
 
 func init() {
@@ -27,13 +25,12 @@ func init() {
 }
 
 func main() {
-	var database, output string
+	var database string
 	func() {
 		var newDataArgs []string
 		for _, arg := range os.Args {
 			switch true {
-			case strings.HasPrefix(arg, "--database"),
-				strings.HasPrefix(arg, "--output"):
+			case strings.HasPrefix(arg, "--database"):
 				for _, val := range strings.Split(arg, "=") {
 					newDataArgs = append(newDataArgs, val)
 				}
@@ -47,29 +44,14 @@ func main() {
 				if len(newDataArgs) > index {
 					database = strings.TrimSpace(newDataArgs[index+1])
 				}
-			case "--output":
-				if len(newDataArgs) > index {
-					output = strings.TrimSpace(newDataArgs[index+1])
-				}
 			}
 		}
 	}()
-	if len(output) == 0 {
-		output = strings.TrimSuffix(os.Getenv("TOTP_APP_QRCODE_FOLDER"), "/")
-		fmt.Printf(
-			"\r\003[K(default --output=\"%s\")\n\r\003[KUsage: --database=\"totp.db\" --output=\"new-qrcode\"\n",
-			output,
-		)
-	}
-	_ = os.MkdirAll(output, 0o755)
 	if len(database) == 0 {
 		database = os.Getenv("TOTP_APP_DATABASE_FILENAME")
 	}
 	if len(database) == 0 {
-		fmt.Printf(
-			"\r\003[K(default --output=\"%s\")\n\r\003[KUsage: --database=\"totp.db\" --output=\"new-qrcode\"\n",
-			output,
-		)
+		fmt.Printf("\r\033[KUsage: --database=\"totp.db\"\n")
 		return
 	}
 	databasePath := os.Getenv("TOTP_APP_DATABASE_FOLDER") + database
@@ -77,10 +59,16 @@ func main() {
 	// Open a buckets database.
 	bx, err := buckets.Open(databasePath)
 	if err != nil {
-		fmt.Println(err)
 		return
 	}
 	defer bx.Close()
+
+	totpDatabaseName := []byte("totpDatabase")
+	totpDatabase, err := bx.New(totpDatabaseName)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	var firstTimeData []byte
 	func() {
@@ -101,18 +89,13 @@ func main() {
 		return
 	}
 
+	mapAccountDeleteKey := map[string][]byte{}
+
 	func() {
 		rate, _ := strconv.Atoi(os.Getenv("TOTP_APP_RATE_COUNT"))
 		if rate < 1 || rate > 100 {
 			rate = 10
 		}
-		totpDatabaseName := []byte("totpDatabase")
-		totpDatabase, err := bx.New(totpDatabaseName)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
 		fmt.Printf("\r\033[KNo\t\t|\t\tTitle\t\t\t|\t\tAccount\n")
 		func() {
 			dataDoings, err := totpDatabase.Items()
@@ -127,11 +110,13 @@ func main() {
 				accountTitle := arrTotp[2]
 				arrTotp[2] = url.PathEscape(accountTitle)
 				if len(arrTotp) > 2 {
+					accountName := strings.Join(append(arrTotp[:3], strconv.Itoa(number)), "//")
+					mapAccountDeleteKey[accountName] = item.Key
 					fmt.Printf(
 						"\r\033[K%d\t\t%s\t\t\t\t%s\n",
 						number,
 						accountTitle,
-						strings.Join(append(arrTotp[:3], strconv.Itoa(number)), "//"),
+						accountName,
 					)
 					number++
 				}
@@ -196,79 +181,79 @@ func main() {
 			return
 		}
 
+		fmt.Printf("\r\033[K\n\n\033[2A\r\033[K")
 		for {
-			input := getInputByStdIn("\r\033[KEnter the Account (q to quit): ", "", "\n")
+			input := getInputByStdIn("Enter the Account to update (q to quit): ", "", "\n")
 			if input == "q" {
 				os.Exit(0)
 			}
 			func() {
-				arrTotp := strings.Split(strings.TrimSpace(input), "//")
+				arrTotp := strings.Split(input, "//")
 				if len(arrTotp) < 3 {
-					fmt.Printf("\033[1A")
+					fmt.Printf("\033[1A\r\033[K")
 					return
 				}
-				issuer := arrTotp[0]
-				accountName := arrTotp[1]
-				accountTitle, _ := url.PathUnescape(arrTotp[2])
 				secretKey := []byte(strings.Join(arrTotp[:2], "//"))
+				totpKey := mapAccountDeleteKey[input]
+				if len(string(totpKey)) < 1 {
+					fmt.Printf("\033[1A\r\033[K")
+					return
+				}
+				secret, err := secretDatabase.Get(secretKey)
+				if err != nil {
+					fmt.Println(err)
+					fmt.Printf("\033[2A\r\033[K")
+					return
+				}
 
-				if dataSecret, err := secretDatabase.Get(secretKey); err == nil &&
-					len(string(dataSecret)) > 3 {
-					secret := string(dataSecret)
+				timeNowUnixNano := strconv.FormatInt(time.Now().UnixNano(), 10)
+				timeNowData := []byte(timeNowUnixNano)
+				issuer := getInputByStdIn("Change issuer: ", arrTotp[0], "\r\033[K")
+				accountName := getInputByStdIn("Change account: ", arrTotp[1], "\r\033[K")
+				if len(arrTotp) < 3 {
+					arrTotp = append(arrTotp, arrTotp[0])
+				}
+				title, _ := url.PathUnescape(arrTotp[2])
+				accountTitle := getInputByStdIn("Change title: ", title, "\r\033[K")
+				accountTitle = url.PathEscape(accountTitle)
 
-					if key, err := otp2fa.GenerateKey(issuer, accountName, dataSecret); err == nil {
-						urlKey, dataBase64PNG, pngData := otp2fa.NewQrCodeUrl(
-							key.URL(),
-							accountTitle,
-							accountName,
-							issuer,
-							secret,
-						)
+				newSecretKey := []byte(fmt.Sprintf(
+					"%s//%s",
+					issuer,
+					accountName,
+				))
+				totpData := []byte(fmt.Sprintf(
+					"%s//%s//%s//%s",
+					issuer,
+					accountName,
+					accountTitle,
+					timeNowUnixNano,
+				))
 
-						allTextData := fmt.Sprintf("%s-%s-%s", issuer, accountTitle, accountName)
-						allString := regexp.MustCompile(`[\p{L}\p{N}]+`).
-							FindAllString(allTextData, -1)
-						filename := strings.Join(allString, "-")
-						folderPath := output
-
-						func() {
-							pngName := fmt.Sprintf("%s.png", filename)
-							logName := fmt.Sprintf("%s.log", filename)
-							qrFilename := fmt.Sprintf("%s/%s", folderPath, pngName)
-							logFilename := fmt.Sprintf("%s/%s", folderPath, logName)
-							logData := []byte(fmt.Sprintf(
-								"%s\n%s\n%s\n\n%s\n",
-								urlKey,
-								key.Secret(),
-								dataBase64PNG,
-								qrFilename,
-							))
-							_ = os.WriteFile(logFilename, logData, 0o644)
-							//_ = otp2fa.WriteFileQrCodeUrl(urlKey, qrFilename)
-							_ = otp2fa.WriteFileByPngData(pngData, qrFilename)
-
-							fmt.Printf(
-								"\r\033[KCreated 2FA/QR: %s\n\r\033[K%s\n\r\033[K%s\n",
-								input,
-								logName,
-								pngName,
-							)
-							fmt.Printf("\033[4A\r\033[K")
-
-							// fmt.Println(urlKey)
-							// fmt.Println()
-							// fmt.Println(key.Secret())
-							// fmt.Println()
-							// fmt.Println(dataBase64PNG)
-							// fmt.Println()
-						}()
+				if string(secretKey) != string(newSecretKey) {
+					if secretDatabase.Put(newSecretKey, secret) != nil {
+						fmt.Printf("\033[1A\r\033[K")
 						return
 					}
+					_ = secretDatabase.Delete(secretKey)
 				}
-				fmt.Printf("\033[1A")
+				if totpDatabase.Put(timeNowData, totpData) != nil {
+					fmt.Printf("\033[1A\r\033[K")
+					return
+				}
+				_ = totpDatabase.Delete(totpKey)
+				delete(mapAccountDeleteKey, input)
+
+				fmt.Printf("Updated 2FA account: %s => %s\n", input, fmt.Sprintf(
+					"%s//%s//%s",
+					issuer,
+					accountName,
+					accountTitle,
+				))
+				fmt.Printf("\033[2A\r\033[KEnter the Account to update (q to quit): ")
 			}()
 		}
 	}()
 }
 
-// go run totpgenqrcode.go --database="totp.db" --output="new-qrcode"
+// go run totpupdateaccount.go --database="totp.db"
