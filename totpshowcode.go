@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mattn/go-tty"
+
 	"github.com/joho/godotenv"
 	"github.com/variar/buckets"
 
@@ -126,20 +128,65 @@ func main() {
 
 		mapRunning := map[string]context.CancelFunc{}
 		fmt.Printf("\n\n\033[2A\r\033[KEnter the Account (q to quit): ")
+
+		// Tạo tty để lắng nghe input từ bàn phím
+		ttyObj, err := tty.Open()
+		if err != nil {
+			return
+		}
+		defer func(ttyObj *tty.TTY) {
+			_ = ttyObj.Close()
+		}(ttyObj)
+
+		inputLabel := "\r\033[KEnter the Account (q to quit): "
+		var dataInput string
+		input := &dataInput
+
 		for {
-			var input string
-			_, _ = fmt.Scan(&input)
-			input = strings.TrimSpace(input)
-			if input == "q" {
+			for {
+				r, err := ttyObj.ReadRune()
+				if err != nil {
+					break
+				}
+
+				if r == 0x1B {
+					continue
+				}
+
+				// Khi nhấn Enter thì dừng việc lắng nghe
+				if r == '\r' || r == '\n' {
+					if len(strings.TrimSpace(*input)) > 0 {
+						break
+					} else {
+						continue
+					}
+				}
+
+				// Xử lý các phím khác
+				switch r {
+				case 127: // Phím Backspace
+					if len(*input) > 0 {
+						*input = (*input)[:len(*input)-1]
+						fmt.Printf("\r%s%s\033[K", inputLabel, *input) // Xóa và in lại input
+					}
+				default:
+					newData := string(r)
+					*input += newData
+					fmt.Print(newData)
+				}
+			}
+
+			*input = strings.TrimSpace(*input)
+			if *input == "q" {
 				os.Exit(0)
 			}
-			fmt.Printf("\r\033[K%s\033[1A\r\033[KEnter the Account (q to quit): ", input)
+			fmt.Printf("\n\r\033[K%s\033[1A\r\033[KEnter the Account (q to quit): ", *input)
 			for secret, cancelFunc := range mapRunning {
 				cancelFunc()
 				delete(mapRunning, secret)
 			}
 			func() {
-				slideInput := strings.Split(input, "//")
+				slideInput := strings.Split(*input, "//")
 				if len(slideInput) < 2 {
 					return
 				}
@@ -150,6 +197,8 @@ func main() {
 					go func(secret string) {
 						ctx, cancel := context.WithCancel(context.Background())
 						mapRunning[secret] = cancel
+						inputRunning := *input
+						*input = ""
 						for range time.Tick(time.Second) {
 							timeNow := time.Now()
 							countdown := 30 - timeNow.Second()%30
@@ -158,11 +207,11 @@ func main() {
 							} else if token, err := otp2fa.GenerateCode(secret, timeNow); err == nil {
 								fmt.Printf(
 									"\n\r\033[K%s OTP: %s refresh at %d second(s)\n",
-									input,
+									inputRunning,
 									token,
 									countdown,
 								)
-								fmt.Printf("\033[2A\rEnter the Account (q to quit): ")
+								fmt.Printf("\033[2A\rEnter the Account (q to quit): %s", *input)
 							}
 							// time.Sleep(time.Second * time.Duration(countdown))
 						}

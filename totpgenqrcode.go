@@ -8,9 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mattn/go-tty"
-
 	"github.com/joho/godotenv"
+	"github.com/mattn/go-tty"
 	"github.com/variar/buckets"
 
 	"root/lib/otp2fa"
@@ -151,11 +150,7 @@ func main() {
 			fmt.Printf(endCharInput)
 		}(ttyObj)
 
-		var input []rune
-		for _, ru := range dataDefault {
-			input = append(input, ru)
-		}
-
+		input := dataDefault
 		// Lắng nghe từng phím bấm
 		for {
 			r, err := ttyObj.ReadRune()
@@ -163,9 +158,13 @@ func main() {
 				break
 			}
 
+			if r == 0x1B {
+				continue
+			}
+
 			// Khi nhấn Enter thì dừng việc lắng nghe
 			if r == '\r' || r == '\n' {
-				if len(strings.TrimSpace(string(input))) > 0 {
+				if len(strings.TrimSpace(input)) > 0 {
 					break
 				} else {
 					continue
@@ -177,15 +176,15 @@ func main() {
 			case 127: // Phím Backspace
 				if len(input) > 0 {
 					input = input[:len(input)-1]
-					fmt.Printf("\r%s%s\033[K", inputLabel, string(input)) // Xóa và in lại input
+					fmt.Printf("\r%s%s\033[K", inputLabel, input) // Xóa và in lại input
 				}
 			default:
-				// Thêm ký tự vào input
-				input = append(input, r)
-				fmt.Printf("%s", string(r))
+				newData := string(r)
+				input += newData
+				fmt.Print(newData)
 			}
 		}
-		return strings.TrimSpace(string(input))
+		return strings.TrimSpace(input)
 	}
 
 	func() {

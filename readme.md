@@ -65,7 +65,7 @@ TOTP_APP_DENIM_WORD_FILENAME=-
 
 ```shell
  # add test folder
- mkdir test_otp2fs; cd test_otp2fs
+ mkdir test_otp2fa; cd test_otp2fa
 
  # CREATE global env
  mkdir env
@@ -79,11 +79,11 @@ TOTP_APP_DENIM_WORD_FILENAME=-
 ' > env/global.env
 
  # RUN container
- docker run -d --name otp2fs -v ${PWD}/env:/app/env -v ${PWD}/database:/app/database -v ${PWD}/qrcode:/app/qrcode -v ${PWD}/new-qrcode:/app/new-qrcode -it manhavn/otp2fs:v0.0.1
- docker exec otp2fs create --issuer="test.com" --account="hello@account.com" --title="Test Title"
- docker exec otp2fs load --database="totp.db" --qrcode="test-com-Test-Title-hello-account-com.png"
- docker exec -it otp2fs update --database="totp.db"
- docker exec -it otp2fs genqr --database="totp.db" --output="new-qrcode"
- docker exec -it otp2fs otp --database="totp.db"
- docker exec -it otp2fs remove --database="totp.db"
+ docker run -d --name otp2fa -v ${PWD}/env:/app/env -v ${PWD}/database:/app/database -v ${PWD}/qrcode:/app/qrcode -v ${PWD}/new-qrcode:/app/new-qrcode -it manhavn/otp2fa:v0.0.1
+ docker exec otp2fa create --issuer="test.com" --account="hello@account.com" --title="Test Title"
+ docker exec otp2fa load --database="totp.db" --qrcode="test-com-Test-Title-hello-account-com.png"
+ docker exec -it otp2fa update --database="totp.db"
+ docker exec -it otp2fa genqr --database="totp.db" --output="new-qrcode"
+ docker exec -it otp2fa otp --database="totp.db"
+ docker exec -it otp2fa remove --database="totp.db"
 ```
