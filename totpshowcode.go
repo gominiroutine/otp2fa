@@ -186,7 +186,9 @@ func main() {
 				delete(mapRunning, secret)
 			}
 			func() {
-				slideInput := strings.Split(*input, "//")
+				inputRunning := *input
+				*input = ""
+				slideInput := strings.Split(inputRunning, "//")
 				if len(slideInput) < 2 {
 					return
 				}
@@ -197,21 +199,44 @@ func main() {
 					go func(secret string) {
 						ctx, cancel := context.WithCancel(context.Background())
 						mapRunning[secret] = cancel
-						inputRunning := *input
-						*input = ""
+						func() {
+							timeNow := time.Now()
+							countdown := 30 - timeNow.Second()%30
+							if token, err := otp2fa.GenerateCode(secret, timeNow); err == nil {
+								fmt.Printf(
+									"\n\r\033[K%s OTP: %s refresh at %d second(s)\n%s",
+									inputRunning,
+									token,
+									countdown,
+									token,
+								)
+								fmt.Printf("\033[2A\rEnter the Account (q to quit): %s", *input)
+							}
+						}()
 						for range time.Tick(time.Second) {
 							timeNow := time.Now()
 							countdown := 30 - timeNow.Second()%30
 							if ctx.Err() != nil {
 								break
 							} else if token, err := otp2fa.GenerateCode(secret, timeNow); err == nil {
-								fmt.Printf(
-									"\n\r\033[K%s OTP: %s refresh at %d second(s)\n",
-									inputRunning,
-									token,
-									countdown,
-								)
-								fmt.Printf("\033[2A\rEnter the Account (q to quit): %s", *input)
+								if countdown == 30 {
+									fmt.Printf(
+										"\n\r\033[K%s OTP: %s refresh at %d second(s)\n%s",
+										inputRunning,
+										token,
+										countdown,
+										token,
+									)
+									fmt.Printf("\033[2A\rEnter the Account (q to quit): %s", *input)
+								} else {
+									fmt.Printf(
+										"\n\r\033[K%s OTP: %s refresh at %d second(s)\n",
+										inputRunning,
+										token,
+										countdown,
+									)
+									fmt.Printf("\033[2A\rEnter the Account (q to quit): %s", *input)
+								}
 							}
 							// time.Sleep(time.Second * time.Duration(countdown))
 						}
