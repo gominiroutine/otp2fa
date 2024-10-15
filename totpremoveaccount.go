@@ -89,6 +89,7 @@ func main() {
 
 	mapAccountDeleteKey := map[string][]byte{}
 
+	listAccountData := map[string]string{}
 	func() {
 		rate, _ := strconv.Atoi(os.Getenv("TOTP_APP_RATE_COUNT"))
 		if rate < 1 || rate > 100 {
@@ -109,6 +110,7 @@ func main() {
 				arrTotp[2] = url.PathEscape(accountTitle)
 				if len(arrTotp) > 2 {
 					accountName := strings.Join(append(arrTotp[:3], strconv.Itoa(number)), "//")
+					listAccountData[strconv.Itoa(number)] = accountName
 					mapAccountDeleteKey[accountName] = item.Key
 					fmt.Printf(
 						"\r\033[K%d\t\t%s\t\t\t\t%s\n",
@@ -185,6 +187,9 @@ func main() {
 				os.Exit(0)
 			}
 			func() {
+				if !strings.Contains(input, "//") {
+					input = listAccountData[strings.TrimSpace(input)]
+				}
 				arrTotp := strings.Split(input, "//")
 				if len(arrTotp) < 2 || len(string(mapAccountDeleteKey[input])) < 1 {
 					fmt.Printf(

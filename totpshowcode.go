@@ -83,6 +83,7 @@ func main() {
 		return
 	}
 
+	listAccountData := map[string]string{}
 	func() {
 		rate, _ := strconv.Atoi(os.Getenv("TOTP_APP_RATE_COUNT"))
 		if rate < 1 || rate > 100 {
@@ -106,12 +107,14 @@ func main() {
 				dataTotp := string(item.Value)
 				arrTotp := strings.Split(dataTotp, "//")
 				if len(arrTotp) > 2 {
-					title := arrTotp[2]
+					accountTitle := arrTotp[2]
+					accountName := strings.Join(append(arrTotp[:2], strconv.Itoa(number)), "//")
+					listAccountData[strconv.Itoa(number)] = accountName
 					fmt.Printf(
 						"\r\033[K%d\t\t%s\t\t\t\t%s\n",
 						number,
-						title,
-						strings.Join(append(arrTotp[:2], strconv.Itoa(number)), "//"),
+						accountTitle,
+						accountName,
 					)
 					number++
 				}
@@ -188,6 +191,9 @@ func main() {
 			func() {
 				inputRunning := *input
 				*input = ""
+				if !strings.Contains(inputRunning, "//") {
+					inputRunning = listAccountData[strings.TrimSpace(inputRunning)]
+				}
 				slideInput := strings.Split(inputRunning, "//")
 				if len(slideInput) < 2 {
 					return
