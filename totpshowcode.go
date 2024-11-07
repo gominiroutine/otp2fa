@@ -8,9 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mattn/go-tty"
-
 	"github.com/joho/godotenv"
+	"github.com/mattn/go-tty"
 	"github.com/variar/buckets"
 
 	"root/lib/otp2fa"

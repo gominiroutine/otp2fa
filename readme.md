@@ -1,4 +1,4 @@
-# OTP2FA
+# [OTP2FA GitHub](https://github.com/gominiroutine/otp2fa)
 
 ## Config
 

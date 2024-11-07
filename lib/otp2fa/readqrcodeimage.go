@@ -6,11 +6,10 @@ import (
 	"image/jpeg"
 	"image/png"
 
-	"github.com/srwiley/oksvg"
-	"github.com/srwiley/rasterx"
-
 	"github.com/makiuchi-d/gozxing"
 	"github.com/makiuchi-d/gozxing/qrcode"
+	"github.com/srwiley/oksvg"
+	"github.com/srwiley/rasterx"
 )
 
 func ReadQrCodeImage(data []byte) (string, error) {
